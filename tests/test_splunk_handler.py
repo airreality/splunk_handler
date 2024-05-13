@@ -22,6 +22,7 @@ SPLUNK_QUEUE_SIZE = 1111
 SPLUNK_DEBUG = False
 SPLUNK_RETRY_COUNT = 1
 SPLUNK_RETRY_BACKOFF = 0.1
+SPLUNK_ADDITIONAL_HEADERS = {"test": "header"}
 
 RECEIVER_URL = 'https://%s:%s/services/collector/event' % (SPLUNK_HOST, SPLUNK_PORT)
 
@@ -45,6 +46,7 @@ class TestSplunkHandler(unittest.TestCase):
             debug=SPLUNK_DEBUG,
             retry_count=SPLUNK_RETRY_COUNT,
             retry_backoff=SPLUNK_RETRY_BACKOFF,
+            additional_headers=SPLUNK_ADDITIONAL_HEADERS,
         )
 
     def tearDown(self):
@@ -68,6 +70,7 @@ class TestSplunkHandler(unittest.TestCase):
         self.assertEqual(self.splunk.debug, SPLUNK_DEBUG)
         self.assertEqual(self.splunk.retry_count, SPLUNK_RETRY_COUNT)
         self.assertEqual(self.splunk.retry_backoff, SPLUNK_RETRY_BACKOFF)
+        self.assertTrue(self.splunk.additional_headers, SPLUNK_ADDITIONAL_HEADERS)
 
         self.assertFalse(logging.getLogger('requests').propagate)
         self.assertFalse(logging.getLogger('splunk_handler').propagate)
@@ -96,7 +99,7 @@ class TestSplunkHandler(unittest.TestCase):
             verify=SPLUNK_VERIFY,
             data=expected_output,
             timeout=SPLUNK_TIMEOUT,
-            headers={'Authorization': "Splunk %s" % SPLUNK_TOKEN},
+            headers={'Authorization': "Splunk %s" % SPLUNK_TOKEN, **SPLUNK_ADDITIONAL_HEADERS},
         )
 
     def test_splunk_worker_override(self):
@@ -123,7 +126,7 @@ class TestSplunkHandler(unittest.TestCase):
         self.mock_request.assert_called_once_with(
             RECEIVER_URL,
             data=expected_output,
-            headers={'Authorization': "Splunk %s" % SPLUNK_TOKEN},
+            headers={'Authorization': "Splunk %s" % SPLUNK_TOKEN, **SPLUNK_ADDITIONAL_HEADERS},
             verify=SPLUNK_VERIFY,
             timeout=SPLUNK_TIMEOUT
         )
@@ -184,7 +187,7 @@ class TestSplunkHandler(unittest.TestCase):
         self.mock_request.assert_has_calls([call(
             RECEIVER_URL,
             data=expected_output * 10,
-            headers={'Authorization': 'Splunk %s' % SPLUNK_TOKEN},
+            headers={'Authorization': "Splunk %s" % SPLUNK_TOKEN, **SPLUNK_ADDITIONAL_HEADERS},
             verify=SPLUNK_VERIFY,
             timeout=SPLUNK_TIMEOUT
         )] * 2, any_order=True)

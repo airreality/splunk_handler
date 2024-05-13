@@ -51,7 +51,8 @@ class SplunkHandler(logging.Handler):
                  force_keep_ahead=False, hostname=None, protocol='https',
                  proxies=None, queue_size=DEFAULT_QUEUE_SIZE, record_format=False,
                  retry_backoff=2.0, retry_count=5, source=None,
-                 sourcetype='text', timeout=60, url=None, verify=True):
+                 sourcetype='text', timeout=60, url=None, verify=True,
+                 additional_headers=None):
         """
         Args:
             host (str): The Splunk host param
@@ -74,6 +75,7 @@ class SplunkHandler(logging.Handler):
             timeout (float): The time to wait for a response from Splunk
             url (str): Override of the url to send the event to
             verify (bool): Whether to perform ssl certificate validation
+            additional_headers (dict): The headers to add in Splunk request
         """
 
         global instances
@@ -105,6 +107,7 @@ class SplunkHandler(logging.Handler):
         self.proxies = proxies
         self.record_format = record_format
         self.processing_payload = False
+        self.additional_headers = additional_headers
         if not url:
             self.url = '%s://%s:%s/services/collector/event' % (self.protocol, self.host, self.port)
         else:
@@ -256,12 +259,16 @@ class SplunkHandler(logging.Handler):
             self.write_debug_log("Payload available for sending")
             self.write_debug_log("Destination URL is " + self.url)
 
+            headers = {'Authorization': "Splunk %s" % self.token}
+            if self.additional_headers is not None:
+                headers.update(**self.additional_headers)
+
             try:
                 self.write_debug_log("Sending payload: " + payload)
                 r = self.session.post(
                     self.url,
                     data=payload,
-                    headers={'Authorization': "Splunk %s" % self.token},
+                    headers=headers,
                     verify=self.verify,
                     timeout=self.timeout
                 )
